@@ -32,6 +32,29 @@ const requireAdmin = (req, res, next) => {
     }
 };
 
+// Vercel Serverless MongoDB Connection caching
+let isConnected = false;
+const connectDB = async () => {
+    if (isConnected) return;
+    try {
+        const db = await mongoose.connect(process.env.MONGO_URI, {
+            serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
+        });
+        isConnected = db.connections[0].readyState === 1;
+        console.log('✅ MongoDB connected');
+        // Only seed if we actually had to reconnect/cold start
+        if (isConnected) await seedInitialData();
+    } catch (err) {
+        console.error('❌ MongoDB error:', err);
+    }
+};
+
+// Ensure DB is connected before handling any API requests
+app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/info', require('./routes/portfolioInfo'));
@@ -45,13 +68,7 @@ app.get('/', (req, res) => {
     res.json({ message: 'Portfolio API running 🚀', status: 'OK' });
 });
 
-// MongoDB connection + seed
-mongoose.connect(process.env.MONGO_URI)
-    .then(async () => {
-        console.log('✅ MongoDB connected');
-        await seedInitialData();
-    })
-    .catch((err) => console.error('❌ MongoDB error:', err));
+// (MongoDB connection logic is now handled via the connectDB middleware above)
 
 async function seedInitialData() {
     const Project = require('./models/Project');
