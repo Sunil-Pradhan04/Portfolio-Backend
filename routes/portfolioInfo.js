@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const PortfolioInfo = require('../models/PortfolioInfo');
+const Visitor = require('../models/Visitor');
 
 // Middleware: verify JWT from Authorization header
 const requireAdmin = (req, res, next) => {
@@ -20,13 +21,22 @@ const requireAdmin = (req, res, next) => {
 };
 
 // GET /api/info — public, returns the single portfolio info doc
+// Also increments the visitor counter in the 'visitors' collection
 router.get('/', async (req, res) => {
     try {
         let info = await PortfolioInfo.findOne();
         if (!info) {
             info = await PortfolioInfo.create({});
         }
-        res.json(info);
+
+        // Increment visitor count (upsert: create doc if none exists)
+        const visitorDoc = await Visitor.findOneAndUpdate(
+            {},
+            { $inc: { count: 1 } },
+            { new: true, upsert: true }
+        );
+
+        res.json({ ...info.toObject(), visitorCount: visitorDoc.count });
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }
