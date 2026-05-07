@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-let geminiRateLimited = false;
+let geminiRateLimited = true;
 
 function extractFinalMessage(content) {
     return content
@@ -17,7 +17,7 @@ function extractFinalMessage(content) {
 const callGPT = async (messages) => {
     try {
         const resp = await openai.chat.completions.create({
-            model: 'gpt-4.1-nano',
+            model: 'gpt-4o-mini',
             messages,
         });
         const raw = resp.choices?.[0]?.message?.content || 'No response.';
@@ -25,7 +25,7 @@ const callGPT = async (messages) => {
         return extractFinalMessage(raw);
     } catch (err) {
         console.error('❌ GPT Error:', err.response?.data || err.message);
-        return 'AI assistant (ChatGPT) is temporarily unavailable. Please try again later.';
+        return 'AI assistant is temporarily unavailable. Please try again later.';
     }
 };
 
@@ -63,7 +63,7 @@ const callGEMINI = async (messages) => {
             throw rateLimitErr;
         }
         console.error('❌ Gemini Error:', err.message);
-        return 'AI assistant (Gemini) is temporarily unavailable. Please try again later.';
+        return 'AI assistant is temporarily unavailable. Please try again later.';
     }
 };
 
@@ -94,7 +94,7 @@ const portfolioChat = async (message, clientHistory = []) => {
         const messages = [
             {
                 role: 'system',
-                content: `You are PortfolioBot, an AI assistant for Sunil Pradhan's portfolio. Answer using only the provided context, keeping responses helpful, concise, and professional. Do not guess or use outside information. If the answer is not in context, say: "I don't have that information yet. Feel free to contact Sunil directly!" For greetings, reply briefly and politely. If asked about your identity or creator, say: "I'm PortfolioBot, built by Sunil Pradhan to answer questions about him."`,
+                content: `You are PortfolioBot, an AI assistant for Sunil Pradhan's portfolio. Answer using only the provided context, keeping responses helpful, concise, and professional. Do not guess or use outside information. If the answer is not in context then say to contact sunil in your way. For greetings, reply briefly and politely. If asked about your identity or creator give your identity as Sunil's ai assistant.`,
             },
             ...history,
             {
